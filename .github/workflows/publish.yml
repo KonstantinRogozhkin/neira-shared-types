@@ -18,16 +18,17 @@ jobs:
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
+          cache: 'yarn'
           
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
         
       - name: Build package
-        run: npm run build
+        run: yarn build
         
       - name: Run tests (if available)
         run: |
-          if npm run test --if-present; then
+          if yarn test --if-present; then
             echo "Tests passed"
           else
             echo "No tests found or tests failed"
@@ -40,8 +41,13 @@ jobs:
           echo "Package version: $PACKAGE_VERSION"
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
           
+      - name: Verify package contents
+        run: |
+          echo "Checking package contents..."
+          yarn pack --dry-run
+          
       - name: Publish to NPM
-        run: npm publish
+        run: yarn publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
@@ -55,6 +61,6 @@ jobs:
                 issue_number: context.payload.release.id,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `🎉 Successfully published neira-shared-types@${process.env.PACKAGE_VERSION} to NPM!`
+                body: `🎉 Successfully published neira-shared-types@${process.env.PACKAGE_VERSION} to NPM!\n\n📦 Package: https://www.npmjs.com/package/neira-shared-types\n🏷️ Version: ${process.env.PACKAGE_VERSION}`
               })
             } 
