@@ -18,10 +18,11 @@ jobs:
         with:
           node-version: '18'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'yarn'
           
       - name: Enable Corepack
-        run: corepack enable
+        run: |
+          corepack enable
+          corepack prepare yarn@4.9.2 --activate
           
       - name: Install dependencies
         run: yarn install --immutable
