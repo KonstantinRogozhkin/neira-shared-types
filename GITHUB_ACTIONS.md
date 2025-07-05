@@ -4,7 +4,8 @@
 
 Этот репозиторий настроен с автоматическими GitHub Actions для:
 - ✅ Непрерывной интеграции (CI)
-- ✅ Автоматической публикации в NPM
+- ✅ Автоматической публикации в NPM через semantic-release
+- ✅ Управления версиями через Conventional Commits
 
 ## Workflows
 
@@ -20,62 +21,110 @@
 - Проверка TypeScript компиляции
 - Валидация содержимого пакета
 
-### 2. NPM Publishing (`.github/workflows/publish.yml`)
+### 2. Semantic Release (`.github/workflows/publish.yml`)
 
 **Триггеры:**
-- Создание нового релиза в GitHub
-- Ручной запуск через workflow_dispatch
+- Push в ветку `main`
 
 **Что выполняется:**
 - Установка зависимостей через Yarn
 - Сборка пакета
 - Запуск тестов
-- Публикация в NPM
-- Создание комментария с результатом
+- **Анализ коммитов** по стандарту Conventional Commits
+- **Автоматическое определение версии** (major/minor/patch)
+- **Генерация CHANGELOG.md**
+- **Создание git тега**
+- **Публикация в NPM**
+- **Создание GitHub Release**
 
 ## Настройка секретов
 
-Для работы автоматической публикации необходимо настроить секрет в GitHub:
+Для работы автоматической публикации необходимо настроить секреты в GitHub:
 
 1. Перейдите в Settings → Secrets and variables → Actions
-2. Добавьте секрет `NPM_TOKEN`:
-   - Получите токен в NPM: https://www.npmjs.com/settings/tokens
-   - Выберите "Automation" token type
-   - Скопируйте токен и добавьте как секрет
+2. Добавьте секреты:
+   - `NPM_TOKEN`: Токен для публикации в NPM
+     - Получите токен в NPM: https://www.npmjs.com/settings/tokens
+     - Выберите "Automation" token type
+   - `GITHUB_TOKEN`: Автоматически предоставляется GitHub Actions
 
-## Процесс релиза
+## Процесс релиза (полностью автоматический)
 
-1. **Обновите версию** в `package.json`:
-   ```bash
-   yarn version patch  # или minor/major
-   ```
+### 1. Разработка с Conventional Commits
 
-2. **Создайте коммит** с изменениями:
-   ```bash
-   git add package.json
-   git commit -m "chore: bump version to X.X.X"
-   git push
-   ```
+```bash
+# Новая функция (minor версия)
+git commit -m "feat: добавлена поддержка новых типов"
 
-3. **Создайте релиз** в GitHub:
-   - Перейдите в Releases → Create a new release
-   - Создайте новый тег (например, `v1.1.4`)
-   - Добавьте описание изменений
-   - Нажмите "Publish release"
+# Исправление бага (patch версия)
+git commit -m "fix: исправлена типизация интерфейса"
 
-4. **Автоматическая публикация**: GitHub Actions автоматически опубликует пакет в NPM
+# Критическое изменение (major версия)
+git commit -m "feat!: изменена структура API"
+```
+
+### 2. Пуш в main
+
+```bash
+git push origin main
+```
+
+### 3. Автоматический релиз
+
+GitHub Actions **автоматически**:
+1. Анализирует коммиты с последнего релиза
+2. Определяет тип версии (major/minor/patch)
+3. Обновляет `package.json`
+4. Генерирует `CHANGELOG.md`
+5. Создает git тег
+6. Публикует в NPM
+7. Создает GitHub Release
+
+## Semantic Release конфигурация
+
+Настройки в `.releaserc.json`:
+
+```json
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator", 
+    "@semantic-release/changelog",
+    "@semantic-release/npm",
+    "@semantic-release/git"
+  ]
+}
+```
+
+## Правила версионирования
+
+| Тип коммита | Версия | Пример |
+|-------------|---------|---------|
+| `feat:` | minor | 1.1.3 → 1.2.0 |
+| `fix:` | patch | 1.1.3 → 1.1.4 |
+| `perf:` | patch | 1.1.3 → 1.1.4 |
+| `refactor:` | patch | 1.1.3 → 1.1.4 |
+| `feat!:` или `BREAKING CHANGE:` | major | 1.1.3 → 2.0.0 |
+| `docs:`, `style:`, `test:`, `chore:` | нет релиза | - |
 
 ## Мониторинг
 
 - **CI статус**: Проверяйте статус в разделе Actions
-- **NPM публикация**: После релиза проверьте https://www.npmjs.com/package/neira-shared-types
-- **Логи**: Все логи доступны в разделе Actions → конкретный workflow
+- **Автоматические релизы**: https://github.com/KonstantinRogozhkin/neira-shared-types/releases
+- **NPM публикация**: https://www.npmjs.com/package/neira-shared-types
+- **Changelog**: Автоматически генерируется в `CHANGELOG.md`
 
 ## Troubleshooting
 
+### Релиз не создался
+- Проверьте, что коммиты соответствуют Conventional Commits
+- Убедитесь, что есть изменения, требующие релиза
+- Проверьте логи workflow в Actions
+
 ### Ошибка публикации в NPM
 - Проверьте актуальность `NPM_TOKEN`
-- Убедитесь, что версия в `package.json` больше текущей в NPM
+- Убедитесь, что у токена есть права на публикацию
 - Проверьте права доступа к пакету
 
 ### Ошибки сборки
@@ -83,6 +132,15 @@
 - Убедитесь, что все зависимости корректно установлены
 - Проверьте конфигурацию `tsconfig.json`
 
-### CI падает на тестах
-- Добавьте тесты в проект или измените workflow для пропуска тестов
-- Проверьте совместимость с разными версиями Node.js 
+### Semantic-release не работает
+- Проверьте конфигурацию в `.releaserc.json`
+- Убедитесь, что все плагины установлены
+- Проверьте права `GITHUB_TOKEN`
+
+## Преимущества автоматизации
+
+✅ **Нет ручных ошибок** в версионировании  
+✅ **Автоматический changelog** на основе коммитов  
+✅ **Стандартизированный процесс** для всей команды  
+✅ **Мгновенная публикация** после мержа в main  
+✅ **Полная прозрачность** через GitHub Actions логи 
