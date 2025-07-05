@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package neira.agent;
+
+option go_package = "github.com/neira-app/neira-super-app/proto";
+
+// Основной сервис для Python-агента
+service PythonAgentService {
+  // Здоровье сервиса
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {}
+  
+  // Основные AI операции
+  rpc ProcessPrompt(PromptRequest) returns (PromptResponse) {}
+  rpc ProcessStreamingPrompt(PromptRequest) returns (stream PromptStreamResponse) {}
+  
+  // Управление контекстом
+  rpc SetContext(ContextRequest) returns (ContextResponse) {}
+  rpc GetContext(GetContextRequest) returns (ContextResponse) {}
+  
+  // Файловые операции
+  rpc ProcessFile(FileRequest) returns (FileResponse) {}
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse) {}
+  
+  // Вызов кастомных функций
+  rpc CallCustomFunction(CustomFunctionRequest) returns (CustomFunctionResponse) {}
+
+  // === НОВЫЕ DESKTOP КОМАНДЫ ===
+  rpc DesktopClick(DesktopClickRequest) returns (DesktopClickResponse) {}
+  rpc DesktopType(DesktopTypeRequest) returns (DesktopTypeResponse) {}
+
+  // === НОВЫЕ BROWSER КОМАНДЫ ===
+  rpc BrowserNavigate(BrowserNavigateRequest) returns (BrowserNavigateResponse) {}
+  rpc BrowserClick(BrowserClickRequest) returns (BrowserClickResponse) {}
+  rpc BrowserGetHTML(BrowserGetHTMLRequest) returns (BrowserGetHTMLResponse) {}
+}
+
+// Базовые сообщения
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  bool healthy = 1;
+  string message = 2;
+  string version = 3;
+}
+
+// Сообщения для промптов
+message PromptRequest {
+  string prompt = 1;
+  string model = 2;
+  map<string, string> parameters = 3;
+  repeated ContextItem context = 4;
+  int32 max_tokens = 5;
+  float temperature = 6;
+}
+
+message PromptResponse {
+  string response = 1;
+  bool success = 2;
+  string error = 3;
+  map<string, string> metadata = 4;
+}
+
+message PromptStreamResponse {
+  string delta = 1;
+  bool finished = 2;
+  string error = 3;
+}
+
+// Сообщения для контекста
+message ContextItem {
+  string key = 1;
+  string value = 2;
+  string type = 3; // text, file, json, etc.
+}
+
+message ContextRequest {
+  repeated ContextItem items = 1;
+  string session_id = 2;
+}
+
+message ContextResponse {
+  bool success = 1;
+  string error = 2;
+  repeated ContextItem items = 3;
+}
+
+message GetContextRequest {
+  string session_id = 1;
+  repeated string keys = 2; // если пусто, возвращаем все
+}
+
+// Сообщения для файлов
+message FileRequest {
+  string file_path = 1;
+  string operation = 2; // read, write, analyze, etc.
+  bytes content = 3;
+  map<string, string> options = 4;
+}
+
+message FileResponse {
+  bool success = 1;
+  string error = 2;
+  bytes content = 3;
+  map<string, string> metadata = 4;
+}
+
+message ListFilesRequest {
+  string directory = 1;
+  string pattern = 2;
+  bool recursive = 3;
+}
+
+message ListFilesResponse {
+  repeated FileInfo files = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message FileInfo {
+  string name = 1;
+  string path = 2;
+  int64 size = 3;
+  int64 modified_time = 4;
+  bool is_directory = 5;
+}
+
+// Сообщения для кастомных функций
+message CustomFunctionRequest {
+  string function_name = 1;
+  map<string, string> parameters = 2;
+  repeated ContextItem context = 3;
+}
+
+message CustomFunctionResponse {
+  bool success = 1;
+  string error = 2;
+  string result = 3;
+  map<string, string> metadata = 4;
+}
+
+// === НОВЫЕ СООБЩЕНИЯ ДЛЯ DESKTOP КОМАНД ===
+message DesktopClickRequest {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+message DesktopClickResponse {
+  bool success = 1;
+  string error = 2;
+  int32 x = 3;
+  int32 y = 4;
+}
+
+message DesktopTypeRequest {
+  string text = 1;
+}
+
+message DesktopTypeResponse {
+  bool success = 1;
+  string error = 2;
+  string text = 3;
+}
+
+// === НОВЫЕ СООБЩЕНИЯ ДЛЯ BROWSER КОМАНД ===
+message BrowserNavigateRequest {
+  string url = 1;
+}
+
+message BrowserNavigateResponse {
+  bool success = 1;
+  string error = 2;
+  string url = 3;
+  string title = 4;
+}
+
+message BrowserClickRequest {
+  string selector = 1;
+}
+
+message BrowserClickResponse {
+  bool success = 1;
+  string error = 2;
+  string selector = 3;
+}
+
+message BrowserGetHTMLRequest {}
+
+message BrowserGetHTMLResponse {
+  bool success = 1;
+  string error = 2;
+  string html = 3;
+  string url = 4;
+  string title = 5;
+} 

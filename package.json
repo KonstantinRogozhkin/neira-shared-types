@@ -8,7 +8,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "release": "semantic-release"
   },
   "keywords": [
     "neira",
@@ -21,6 +22,10 @@
   "author": "NEIRA Team",
   "license": "MIT",
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^11.0.0",
+    "semantic-release": "^23.0.0",
     "typescript": "~5.8.3"
   },
   "files": [
