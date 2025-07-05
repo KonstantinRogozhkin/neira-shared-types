@@ -275,7 +275,7 @@ export interface MCPForceAutoConnectResponse {
   timestamp: number
 }
 
-// ================== ERROR RESPONSES ==================
+// ================== ОШИБКИ ==================
 
 export interface MCPErrorResponse {
   success: false
@@ -284,7 +284,7 @@ export interface MCPErrorResponse {
   timestamp: number
 }
 
-// ================== UNION TYPES ==================
+// ================== UNION ТИПЫ ==================
 
 export type MCPEvent =
   | MCPStateUpdateEvent
@@ -316,7 +316,7 @@ export type MCPResponse =
   | MCPForceAutoConnectResponse
   | MCPErrorResponse
 
-// ================== HELPER TYPES ==================
+// ================== HELPER ТИПЫ ==================
 
 export type MCPRequestType = MCPRequest['type']
 export type MCPEventType = MCPEvent['type']
@@ -327,6 +327,7 @@ export type MCPRequestPayload<T extends MCPRequestType> =
   }
     ? P
     : never
+
 export type MCPEventPayload<T extends MCPEventType> =
   Extract<MCPEvent, { type: T }> extends {
     payload: infer P
@@ -334,89 +335,88 @@ export type MCPEventPayload<T extends MCPEventType> =
     ? P
     : never
 
-// ================== VALIDATION SCHEMAS ==================
+// ================== КОНСТАНТЫ ==================
 
-export const MCPRequestSchema = {
-  'mcp:get-system-state': {},
-  'mcp:add-server': {
-    required: ['name', 'url', 'type', 'autoConnect'],
-    properties: {
-      name: { type: 'string', minLength: 1 },
-      url: { type: 'string', format: 'uri' },
-      type: { enum: ['sse', 'stdio'] },
-      autoConnect: { type: 'boolean' },
-      description: { type: 'string' },
-    },
-  },
-  'mcp:update-server': {
-    required: ['serverId'],
-    properties: {
-      serverId: { type: 'string', minLength: 1 },
-      updates: { type: 'object' },
-    },
-  },
-  'mcp:remove-server': {
-    required: ['serverId'],
-    properties: {
-      serverId: { type: 'string', minLength: 1 },
-    },
-  },
-  'mcp:connect-server': {
-    required: ['serverId'],
-    properties: {
-      serverId: { type: 'string', minLength: 1 },
-    },
-  },
-  'mcp:disconnect-server': {
-    required: ['serverId'],
-    properties: {
-      serverId: { type: 'string', minLength: 1 },
-    },
-  },
-  'mcp:execute-tool': {
-    required: ['serverId', 'toolName'],
-    properties: {
-      serverId: { type: 'string', minLength: 1 },
-      toolName: { type: 'string', minLength: 1 },
-      args: { type: 'object' },
-    },
-  },
-  'mcp:force-auto-connect': {},
+export const MCP_CHANNEL_PREFIX = 'mcp:'
+
+export const MCP_EVENTS = {
+  STATE_UPDATE: 'mcp:state-update',
+  SERVER_STATUS_CHANGED: 'mcp:server-status-changed',
+  SERVER_ADDED: 'mcp:server-added',
+  SERVER_REMOVED: 'mcp:server-removed',
+  SERVER_CONNECTED: 'mcp:server-connected',
+  SERVER_DISCONNECTED: 'mcp:server-disconnected',
+  AUTO_CONNECT_COMPLETED: 'mcp:auto-connect-completed',
 } as const
 
-// ================== CONSTANTS ==================
+export const MCP_REQUESTS = {
+  GET_SYSTEM_STATE: 'mcp:get-system-state',
+  ADD_SERVER: 'mcp:add-server',
+  UPDATE_SERVER: 'mcp:update-server',
+  REMOVE_SERVER: 'mcp:remove-server',
+  CONNECT_SERVER: 'mcp:connect-server',
+  DISCONNECT_SERVER: 'mcp:disconnect-server',
+  EXECUTE_TOOL: 'mcp:execute-tool',
+  FORCE_AUTO_CONNECT: 'mcp:force-auto-connect',
+} as const
 
-export const MCP_IPC_CHANNELS = [
-  // События (Main → Renderer)
-  'mcp:state-update',
-  'mcp:server-status-changed',
-  'mcp:server-added',
-  'mcp:server-removed',
-  'mcp:server-connected',
-  'mcp:server-disconnected',
-  'mcp:auto-connect-completed',
+export const MCP_SERVER_STATUS = {
+  DISCONNECTED: 'disconnected',
+  CONNECTING: 'connecting',
+  CONNECTED: 'connected',
+  ERROR: 'error',
+} as const
 
-  // Запросы (Renderer → Main)
-  'mcp:get-system-state',
-  'mcp:add-server',
-  'mcp:update-server',
-  'mcp:remove-server',
-  'mcp:connect-server',
-  'mcp:disconnect-server',
-  'mcp:execute-tool',
-  'mcp:force-auto-connect',
-] as const
+export const MCP_SERVER_TYPES = {
+  SSE: 'sse',
+  STDIO: 'stdio',
+} as const
+
+export const MCP_CONNECTION_TIMEOUT = 30000 // 30 секунд
+export const MCP_HEARTBEAT_INTERVAL = 60000 // 1 минута
+export const MCP_MAX_RECONNECT_ATTEMPTS = 3
+export const MCP_RECONNECT_DELAY = 5000 // 5 секунд
+
+// ================== ВАЛИДАЦИЯ ==================
+
+export function isMCPEvent(event: any): event is MCPEvent {
+  return event && typeof event === 'object' && 'type' in event && event.type.startsWith(MCP_CHANNEL_PREFIX)
+}
+
+export function isMCPRequest(request: any): request is MCPRequest {
+  return request && typeof request === 'object' && 'type' in request && request.type.startsWith(MCP_CHANNEL_PREFIX)
+}
+
+export function isMCPResponse(response: any): response is MCPResponse {
+  return response && typeof response === 'object' && 'success' in response && 'timestamp' in response
+}
+
+export function isMCPErrorResponse(response: any): response is MCPErrorResponse {
+  return isMCPResponse(response) && response.success === false
+}
+
+export function isMCPSuccessResponse(response: any): response is Exclude<MCPResponse, MCPErrorResponse> {
+  return isMCPResponse(response) && response.success === true
+}
+
+// ================== КОДЫ ОШИБОК ==================
 
 export const MCP_ERROR_CODES = {
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+  INVALID_REQUEST: 'INVALID_REQUEST',
   SERVER_NOT_FOUND: 'SERVER_NOT_FOUND',
+  SERVER_ALREADY_EXISTS: 'SERVER_ALREADY_EXISTS',
   CONNECTION_FAILED: 'CONNECTION_FAILED',
+  CONNECTION_TIMEOUT: 'CONNECTION_TIMEOUT',
   TOOL_EXECUTION_FAILED: 'TOOL_EXECUTION_FAILED',
-  INVALID_CONFIG: 'INVALID_CONFIG',
-  ALREADY_CONNECTED: 'ALREADY_CONNECTED',
-  NOT_CONNECTED: 'NOT_CONNECTED',
+  TOOL_NOT_FOUND: 'TOOL_NOT_FOUND',
+  INVALID_TOOL_ARGS: 'INVALID_TOOL_ARGS',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
-  TIMEOUT: 'TIMEOUT',
   PERMISSION_DENIED: 'PERMISSION_DENIED',
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+  SERVER_UNAVAILABLE: 'SERVER_UNAVAILABLE',
+  PROTOCOL_ERROR: 'PROTOCOL_ERROR',
+  CONFIGURATION_ERROR: 'CONFIGURATION_ERROR',
 } as const
 
-export type MCPErrorCode = (typeof MCP_ERROR_CODES)[keyof typeof MCP_ERROR_CODES]
+export type MCPErrorCode = (typeof MCP_ERROR_CODES)[keyof typeof MCP_ERROR_CODES] 

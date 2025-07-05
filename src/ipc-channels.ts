@@ -198,13 +198,11 @@ export const ALLOWED_IPC_CHANNELS = [
   'agent:plan-step-started',
   'agent:plan-step-completed',
   'agent:plan-completed',
-]
+] as const
 
 /**
  * Проверяет, является ли канал разрешенным
- * @param channel Имя канала для проверки
- * @returns true, если канал разрешен, иначе false
  */
 export function isAllowedChannel(channel: string): boolean {
-  return ALLOWED_IPC_CHANNELS.includes(channel)
-}
+  return ALLOWED_IPC_CHANNELS.includes(channel as any)
+} 

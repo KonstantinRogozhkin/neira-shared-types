@@ -4,6 +4,18 @@
   "description": "Общие TypeScript типы для экосистемы NEIRA",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./ipc-channels": {
+      "types": "./dist/ipc-channels.d.ts",
+      "import": "./dist/ipc-channels.js",
+      "require": "./dist/ipc-channels.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

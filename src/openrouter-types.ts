@@ -185,4 +185,4 @@ export interface ModelSearchResult {
   filters: ModelSearchFilters
   /** Время выполнения поиска в мс */
   searchTime: number
-}
+} 
